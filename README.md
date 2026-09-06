@@ -1,5 +1,7 @@
 # ZeroDriveX Academy
 
+Canonical production site: https://academy.zerodrivex.com
+
 ZeroDriveX Academy is a serious technical education platform built around real systems, reproducible evidence, translation, and cryptographically verifiable credentials.
 
 ## Product standard
