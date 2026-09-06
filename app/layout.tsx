@@ -3,8 +3,22 @@ import Link from "next/link";
 import AuthStatus from "../components/AuthStatus";
 
 export const metadata = {
-  title: "ZeroDriveX Academy",
-  description: "Real technical education. Free learning. Verifiable credentials."
+  metadataBase: new URL("https://academy.zerodrivex.com"),
+  title: {
+    default: "ZeroDriveX Academy",
+    template: "%s | ZeroDriveX Academy"
+  },
+  description: "Real technical education. Free learning. Verifiable credentials.",
+  alternates: {
+    canonical: "/"
+  },
+  openGraph: {
+    type: "website",
+    url: "https://academy.zerodrivex.com",
+    siteName: "ZeroDriveX Academy",
+    title: "ZeroDriveX Academy",
+    description: "Real technical education. Free learning. Verifiable credentials."
+  }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

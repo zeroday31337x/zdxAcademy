@@ -2,15 +2,15 @@
 
 ## 1. GitHub
 
-Create the repository as:
+Repository:
 
-`zeroday31337x/zdx-academy`
-
-Push the repository contents from `/opt/zerodrivex/zdx-academy`.
+`zeroday31337x/zdxAcademy`
 
 ## 2. Vercel
 
-Create a Vercel project from the GitHub repository.
+Use the existing Vercel project:
+
+`zdx-academy`
 
 Framework: Next.js
 
@@ -44,13 +44,13 @@ The worker token, webhook secret, and signing private key already have secure se
 
 ## 4. Domain
 
-Attach:
+Canonical production domain:
 
-`binary.zdxai.us`
+`academy.zerodrivex.com`
 
-to the Vercel production deployment.
+Attach it to the Vercel `zdx-academy` production deployment.
 
-Replace the old Hostinger DNS target with the DNS target Vercel specifies.
+ZeroDriveX DNS is already hosted on Vercel DNS. The current Academy DNS resolves as a CNAME to `zdx-academy.vercel.app`; the remaining step is attaching the custom domain to this Vercel project.
 
 ## 5. Stripe
 
@@ -72,7 +72,7 @@ The app creates an internal payment reference after confirming eligibility, then
 
 Webhook endpoint:
 
-`https://binary.zdxai.us/api/stripe/webhook`
+`https://academy.zerodrivex.com/api/stripe/webhook`
 
 Enabled events:
 
@@ -81,17 +81,15 @@ Enabled events:
 - `checkout.session.async_payment_failed`
 - `checkout.session.expired`
 
-The webhook ignores Checkout Sessions that do not have Academy certificate metadata, so other ZeroDriveX Checkout traffic is not processed by the Academy handler.
-
 ## 6. Supabase Auth
 
 Configure the production Site URL as:
 
-`https://binary.zdxai.us`
+`https://academy.zerodrivex.com`
 
 Add the dashboard redirect URL if required:
 
-`https://binary.zdxai.us/dashboard`
+`https://academy.zerodrivex.com/dashboard`
 
 ## 7. Verification
 
