@@ -17,7 +17,21 @@ export const metadata = {
     url: "https://academy.zerodrivex.com",
     siteName: "ZeroDriveX Academy",
     title: "ZeroDriveX Academy",
-    description: "Real technical education. Free learning. Verifiable credentials."
+    description: "Real technical education. Free learning. Verifiable credentials.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1536,
+        height: 1024,
+        alt: "ZeroDriveX Academy"
+      }
+    ]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ZeroDriveX Academy",
+    description: "Real technical education. Free learning. Verifiable credentials.",
+    images: ["/og-image.png"]
   }
 };
 
