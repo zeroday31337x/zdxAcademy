@@ -8,29 +8,20 @@ export const metadata = {
     default: "ZeroDriveX Academy",
     template: "%s | ZeroDriveX Academy"
   },
-  description: "Real technical education. Free learning. Verifiable credentials.",
-  alternates: {
-    canonical: "/"
-  },
+  description: "Free technical education. Real systems, real mechanisms, optional verifiable credentials.",
+  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     url: "https://academy.zerodrivex.com",
     siteName: "ZeroDriveX Academy",
     title: "ZeroDriveX Academy",
-    description: "Real technical education. Free learning. Verifiable credentials.",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1536,
-        height: 1024,
-        alt: "ZeroDriveX Academy"
-      }
-    ]
+    description: "Free technical education. Real systems, real mechanisms, optional verifiable credentials.",
+    images: [{ url: "/og-image.png", width: 1536, height: 1024, alt: "ZeroDriveX Academy" }]
   },
   twitter: {
     card: "summary_large_image",
     title: "ZeroDriveX Academy",
-    description: "Real technical education. Free learning. Verifiable credentials.",
+    description: "Free technical education. Real systems, real mechanisms, optional verifiable credentials.",
     images: ["/og-image.png"]
   }
 };
@@ -43,16 +34,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Link className="brand" href="/">ZDX ACADEMY</Link>
           <nav>
             <Link href="/courses">Courses</Link>
-            <Link href="/verify">Verify certificate</Link>
+            <Link href="/verify">Verify</Link>
             <Link href="/about">About</Link>
             <Link href="/dashboard">Dashboard</Link>
             <AuthStatus />
+            <Link className="nav-register" href="/login?mode=signup">Register free</Link>
           </nav>
         </header>
         {children}
         <footer>
           <strong>ZeroDriveX Academy</strong>
-          <span>Real systems. Real mechanisms. Reproducible evidence.</span>
+          <span>Free learning. Real systems. Verifiable credentials.</span>
           <a href="https://zerodrivex.com">ZeroDriveX</a>
         </footer>
       </body>
