@@ -3,13 +3,16 @@ import Link from "next/link";
 export default function Home() {
   return (
     <main>
-      <section className="shell hero">
-        <p className="eyebrow">SERIOUS TECHNICAL EDUCATION</p>
-        <h1>Learn the real system, not a watered-down imitation.</h1>
-        <p className="lede">ZeroDriveX Academy teaches real mechanisms, real tooling and reproducible analysis. Learning is free. Verified credentials are inexpensive and cryptographically verifiable.</p>
-        <div className="actions">
-          <Link className="button" href="/courses">Explore courses</Link>
-          <Link className="button secondary" href="/verify">Verify a certificate</Link>
+      <section className="academy-hero">
+        <div className="academy-hero-overlay" />
+        <div className="shell academy-hero-content">
+          <p className="eyebrow">SERIOUS TECHNICAL EDUCATION</p>
+          <h1>Learn the real system, not a watered-down imitation.</h1>
+          <p className="lede">ZeroDriveX Academy teaches real mechanisms, real tooling and reproducible analysis. Learning is free. Verified credentials are inexpensive and cryptographically verifiable.</p>
+          <div className="actions">
+            <Link className="button" href="/courses">Explore courses</Link>
+            <Link className="button secondary" href="/verify">Verify a certificate</Link>
+          </div>
         </div>
       </section>
       <section className="section">
