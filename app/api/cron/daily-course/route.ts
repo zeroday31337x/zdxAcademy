@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { rest } from "../../../../lib/db";
 import { academyWorkerRpc } from "../../../../lib/worker-rpc";
 
 const topics = [
@@ -27,13 +26,40 @@ export async function GET(req: NextRequest) {
   if (!accepted) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const [title, slug, category, difficulty] = topics[Math.floor(Date.now()/86400000) % topics.length];
-  const existing = await rest(`academy_courses?slug=eq.${encodeURIComponent(slug)}&select=id,status&limit=1`);
-  if (existing[0]) return NextResponse.json({ ok:true, skipped:"course already exists", courseId:existing[0].id });
+  const result = await academyWorkerRpc("academy_worker_create_daily_course", {
+    p_course: {
+      slug,
+      title,
+      summary: `Evidence-grounded technical course on ${title}.`,
+      description: "Daily ZeroDriveX Academy course generated through research, course construction, and independent technical review.",
+      category,
+      difficulty,
+      canonical_language: "en",
+      certificate_price_cents: 499,
+      is_learning_free: true,
+      current_version: 1,
+      estimated_hours: 4,
+      prerequisites: [],
+      learning_objectives: [],
+      metadata: { generated_daily: true, pipeline_state: "vps_queued" }
+    },
+    p_research_input: {
+      mode: "daily_course",
+      autoPipeline: true,
+      durable: true,
+      executionPlane: "vps",
+      title,
+      category,
+      difficulty,
+      objective: "Research this topic from authoritative primary sources, then build a rigorous free technical course with reproducible labs, assessments, and dynamic instances where useful."
+    }
+  });
 
-  const created = await rest("academy_courses", { method:"POST", headers:{ Prefer:"return=representation" }, body:JSON.stringify({
-    slug,title,summary:`Evidence-grounded technical course on ${title}.`,description:"Daily ZeroDriveX Academy course generated through research, course construction, and independent technical review.",category,difficulty,canonical_language:"en",status:"draft",certificate_price_cents:499,is_learning_free:true,current_version:1,estimated_hours:4,prerequisites:[],learning_objectives:[],metadata:{generated_daily:true,pipeline_state:"vps_queued"}
-  })});
-  const course=created[0];
-  const run=await academyWorkerRpc("academy_worker_enqueue", { p_course_id:course.id,p_agent_type:"research",p_input:{mode:"daily_course",autoPipeline:true,durable:true,executionPlane:"vps",title,category,difficulty,objective:"Research this topic from authoritative primary sources, then build a rigorous free technical course with reproducible labs, assessments, and dynamic instances where useful."} });
-  return NextResponse.json({ok:true,courseId:course.id,researchRun:run,executionPlane:"vps"},{status:202});
+  return NextResponse.json({
+    ok: true,
+    ...(result?.skipped ? { skipped: result.skipped } : {}),
+    courseId: result?.course?.id || null,
+    researchRun: result?.researchRun || null,
+    executionPlane: "vps"
+  }, { status: result?.skipped ? 200 : 202 });
 }
