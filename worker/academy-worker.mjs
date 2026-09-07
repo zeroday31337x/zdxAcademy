@@ -6,7 +6,7 @@ const SUPABASE_KEY = process.env.ACADEMY_SUPABASE_PUBLISHABLE_KEY;
 const TOKEN = process.env.ACADEMY_WORKER_TOKEN;
 const OLLAMA_BASE_URL = (process.env.OLLAMA_GATEWAY_URL || process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11436").replace(/\/+$/, "");
 const OLLAMA_SECRET = process.env.OLLAMA_GATEWAY_SECRET || "";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || process.env.ACADEMY_AI_MODEL || "qwen3:30b-a3b-instruct-2507-q4_K_M";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || process.env.ACADEMY_OLLAMA_MODEL || "qwen3:30b-a3b-instruct-2507-q4_K_M";
 const POLL_MS = Number(process.env.ACADEMY_WORKER_POLL_MS || 5000);
 
 if (!SUPABASE_URL || !SUPABASE_KEY || !TOKEN) throw new Error("academy worker database configuration missing");
