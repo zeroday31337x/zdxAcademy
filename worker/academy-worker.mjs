@@ -28,7 +28,7 @@ async function gatherDurableSources(run){
   const discovery=await llm("You are a technical research planner. Return ONLY JSON with key source_urls containing 3-5 authoritative primary-source documentation or standards URLs for the supplied course topic. Prefer official documentation, standards bodies, language/runtime projects, and specifications. No blogs or aggregators.",JSON.stringify({title:run.input?.title,category:run.input?.category,difficulty:run.input?.difficulty}));
   for(const sourceUrl of (discovery?.source_urls||[]).slice(0,5)) try{
     const u=new URL(sourceUrl); const res=await fetch(sourceUrl,{headers:{"User-Agent":"ZeroDriveX-Academy-Research/1.0"},signal:AbortSignal.timeout(20000)}); const excerpt=textFromHtml(await res.text());
-    await db("academy_research_sources",{method:"POST",body:JSON.stringify({course_id:run.course_id,url:sourceUrl,title:sourceUrl,source_type:"primary",publisher:u.hostname,retrieved_at:new Date().toISOString(),content_excerpt:excerpt,notes:`Fetched by durable VPS research worker; HTTP ${res.status}.`,metadata:{http_status:res.status,durable_worker:true}})});
+    await rpc("academy_worker_add_source",{p_token:TOKEN,p_course_id:run.course_id,p_source:{url:sourceUrl,title:sourceUrl,source_type:"primary",publisher:u.hostname,retrieved_at:new Date().toISOString(),content_excerpt:excerpt,notes:`Fetched by durable VPS research worker; HTTP ${res.status}.`,metadata:{http_status:res.status,durable_worker:true}}});
   }catch(e){console.error("source fetch failed",sourceUrl,e?.message||e)}
 }
 
@@ -72,11 +72,48 @@ function sourceGuard(output,sources){const rendered=JSON.stringify(output);const
 function translationInvariantGuard(original,translated){const collect=text=>{const s=String(text||"");return[...new Set([...[...s.matchAll(/`([^`\n]+)`/g)].map(m=>m[1]),...(s.match(/https?:\/\/[^\s)]+/g)||[])])].sort()};const expected=collect(original),actual=collect(translated);return{expected,actual,missing:expected.filter(x=>!actual.includes(x)),unexpected:actual.filter(x=>!expected.includes(x))}}
 
 async function doResearch(run,ctx){const system=`You are the ZeroDriveX Academy Research Agent. Strengthen a serious technical course from evidence.\nRules:\n- ${principles}\n- Treat supplied excerpts as evidence; URLs alone are not proof.\n- Identify uncertainty explicitly.\nReturn ONLY JSON with keys: summary, source_assessment, verified_points, corrections, gaps, recommended_course_changes, research_questions.`;const sources=(ctx?.sources||[]).slice(0,12);return llm(system,JSON.stringify({run_input:run.input,course:ctx?.course,sources,current_course_content:(ctx?.current_lessons||[]).slice(0,20)}))}
-async function doCourseCreate(run,ctx){const research=(ctx?.recent_runs||[]).filter(x=>x.agent_type==="research"&&x.status==="completed").slice(0,4);const system=`You are the ZeroDriveX Academy Course Creation Agent. Create technically rigorous educational material from approved research.\nRules:\n- ${principles}\n- Do not publish directly.\n- Include labs with deliverables and verification criteria.\n- Include assessments that test reasoning.\nReturn ONLY JSON with keys: course_summary, proposed_changes, modules, labs, assessments, translation_notes, unresolved_questions.`;return llm(system,JSON.stringify({run_input:run.input,course:ctx?.course,sources:(ctx?.sources||[]).slice(0,12),research_output:research.map(x=>x.output)}))}
+async function doCourseCreate(run,ctx){const research=(ctx?.recent_runs||[]).filter(x=>x.agent_type==="research"&&x.status==="completed").slice(0,4);const system=`You are the ZeroDriveX Academy Course Creation Agent. Build a complete interactive learning package from approved research.
+Rules:
+- ${principles}
+- Do not publish directly; the independent Reviewer decides.
+- Every instructional lesson must contain substantial body_markdown, 2-5 checkpoint questions, and at least one Mermaid diagram.
+- Every lab lesson must also include an isolated-container lab specification with starter artifacts, expected artifacts, and deterministic verification criteria.
+- The final exam must contain at least 5 multiple-choice questions. Capstones are evidence submissions and need no checkpoint.
+- Questions must test understanding, not trivia. correct_option is a zero-based integer into options.
+- Mermaid must be valid graph/sequence/state/flowchart syntax and must clarify a concept actually taught.
+- Labs must work offline in a Linux/Python container unless the lesson explicitly documents why another environment is required.
+Return ONLY JSON matching:
+{
+  "course_summary":"...",
+  "changelog":"...",
+  "modules":[{
+    "slug":"...",
+    "title":"...",
+    "summary":"...",
+    "lessons":[{
+      "slug":"...",
+      "title":"...",
+      "lesson_type":"lesson|lab|exam|capstone",
+      "estimated_minutes":20,
+      "learning_objectives":["..."],
+      "body_markdown":"...",
+      "source_notes":"...",
+      "safety_notes":null,
+      "diagrams":[{"type":"mermaid","title":"...","code":"flowchart TD\\n  A-->B"}],
+      "checkpoint":[{"prompt":"...","options":["A","B","C","D"],"correct_option":0,"explanation":"...","points":1}],
+      "lab":{"title":"...","instructions_markdown":"...","environment":"Python 3.12/Linux","starter_artifacts":[],"expected_artifacts":[{"name":"result.json"}],"verification_spec":{"normalized_json":true}}
+    }]
+  }],
+  "translation_notes":[],
+  "unresolved_questions":[]
+}.`;return llm(system,JSON.stringify({run_input:run.input,course:ctx?.course,sources:(ctx?.sources||[]).slice(0,12),research_output:research.map(x=>x.output)}))}
 async function doReview(run,ctx){
   if(run.input?.mode==="capstone")return llm("You are the independent ZeroDriveX Academy Capstone Reviewer. Return ONLY JSON with keys: verdict, score, demonstrated_competencies, evidence_gaps, reproducibility_issues, overclaims, required_revisions, reviewer_summary. verdict is approve_recommended or revision_recommended.",JSON.stringify({course:ctx?.course,evidence:run.input.evidence}));
   if(run.input?.mode==="translation")return llm("You are the independent ZeroDriveX Academy Technical Translation Reviewer. Return ONLY JSON with keys verdict, corrected_title, corrected_body_markdown, issues. verdict is approve or revise.",JSON.stringify(run.input));
-  const created=(ctx?.recent_runs||[]).find(x=>x.agent_type==="course_creator"&&x.status==="completed");return llm(`You are the independent ZeroDriveX Academy Technical Reviewer. Try to find what is wrong. Review factual accuracy, source grounding, lab reproducibility, assessment correctness, and false confidence. Return ONLY JSON with keys: verdict, score, blocking_issues, nonblocking_issues, source_gaps, required_revisions, strengths. verdict must be approve or revise.`,JSON.stringify({course:ctx?.course,sources:(ctx?.sources||[]).slice(0,12),course_creator_output:created?.output||null}));
+  const created=(ctx?.recent_runs||[]).find(x=>x.agent_type==="course_creator"&&x.status==="completed");return llm(`You are the independent ZeroDriveX Academy Technical Reviewer. Try to find what is wrong before approving.
+Review factual accuracy, source grounding, sequential pedagogy, lab reproducibility, checkpoint correctness, Mermaid diagram validity, final-exam coverage, and false confidence.
+Reject if any instructional lesson lacks a checkpoint or diagram, if a lab cannot be performed in the declared isolated environment, if answer keys are ambiguous, or if claims are unsupported.
+Return ONLY JSON with keys: verdict, score, blocking_issues, nonblocking_issues, source_gaps, required_revisions, strengths. verdict must be approve or revise. score is 0-100; approve requires >=80 and no blocking issue.`,JSON.stringify({course:ctx?.course,sources:(ctx?.sources||[]).slice(0,12),course_creator_output:created?.output||null}));
 }
 async function doTranslate(run,ctx){return llm("You are the ZeroDriveX Academy Translation Agent. Preserve technical meaning, code, identifiers, constants, URLs and citations. Return ONLY JSON with keys: language_code, title, body_markdown, terminology_notes, confidence.",JSON.stringify({run_input:run.input,course:ctx?.course}))}
 
@@ -86,6 +123,12 @@ async function handle(run){
   if(run.agent_type==="research")output=await doResearch(run,ctx);else if(run.agent_type==="course_creator")output=await doCourseCreate(run,ctx);else if(run.agent_type==="reviewer")output=await doReview(run,ctx);else if(run.agent_type==="translator")output=await doTranslate(run,ctx);else throw new Error("unsupported agent type "+run.agent_type);
   if(run.agent_type!=="translator")output=Array.isArray(output)?{payload:output,source_guard:sourceGuard(output,ctx?.sources||[])}:{...output,source_guard:sourceGuard(output,ctx?.sources||[])};
   await rpc("academy_worker_complete",{p_token:TOKEN,p_run_id:run.id,p_status:"completed",p_output:output,p_error:null,p_provider:"ollama",p_model:lastModelUsed});
+  if(run.agent_type==="reviewer" && !run.input?.mode && output?.verdict==="approve" && Number(output?.score||0)>=80){
+    const created=(ctx?.recent_runs||[]).find(x=>x.agent_type==="course_creator"&&x.status==="completed");
+    if(!created?.output) throw new Error("approved review has no course creator package");
+    const published=await rpc("academy_worker_apply_course_package",{p_token:TOKEN,p_course_id:run.course_id,p_package:created.output,p_review:output});
+    console.log(new Date().toISOString(),"published course package",run.course_id,published?.version);
+  }
   const auto=run.input?.autoPipeline!==false;
   if(auto&&run.agent_type==="research")await rpc("academy_worker_enqueue",{p_token:TOKEN,p_course_id:run.course_id,p_agent_type:"course_creator",p_input:{researchRunIds:[run.id],autoPipeline:true,durable:true,executionPlane:"vps"}});
   else if(auto&&run.agent_type==="course_creator")await rpc("academy_worker_enqueue",{p_token:TOKEN,p_course_id:run.course_id,p_agent_type:"reviewer",p_input:{courseCreatorRunId:run.id,autoPipeline:false,durable:true,executionPlane:"vps"}});
