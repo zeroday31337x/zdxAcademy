@@ -20,8 +20,11 @@ const topics = [
 ] as const;
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET || process.env.ACADEMY_WORKER_TOKEN;
-  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const authorization = req.headers.get("authorization");
+  const accepted = [process.env.CRON_SECRET, process.env.ACADEMY_WORKER_TOKEN]
+    .filter((value): value is string => Boolean(value))
+    .some((value) => authorization === `Bearer ${value}`);
+  if (!accepted) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const [title, slug, category, difficulty] = topics[Math.floor(Date.now()/86400000) % topics.length];
   const existing = await rest(`academy_courses?slug=eq.${encodeURIComponent(slug)}&select=id,status&limit=1`);
